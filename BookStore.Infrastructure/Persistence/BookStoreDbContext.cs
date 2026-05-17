@@ -23,6 +23,7 @@ public class BookStoreDbContext : IdentityDbContext<ApplicationUser, IdentityRol
     public DbSet<StockHistory> StockHistories { get; set; }
     public DbSet<Favorite> Favorites { get; set; }
     public DbSet<ProductImage> ProductImages { get; set; }
+    public DbSet<CartHistory> CartHistories { get; set; }
     public DbSet<ShippingAddress> ShippingAddresses { get; set; }
     public DbSet<Supplier> Suppliers { get; set; }
     public DbSet<InventoryReceipt> InventoryReceipts { get; set; }

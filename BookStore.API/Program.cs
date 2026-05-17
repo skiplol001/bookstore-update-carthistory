@@ -5,12 +5,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
 namespace BookStore.API
-{   
+{
     public class Program
     {
         public static async Task Main(string[] args)
@@ -23,7 +22,6 @@ namespace BookStore.API
                 try
                 {
                     await DbInitializer.SeedAdminUser(services);
-
                 }
                 catch (Exception ex)
                 {
@@ -37,7 +35,7 @@ namespace BookStore.API
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
-            .ConfigureAppConfiguration((context, config) =>
+                .ConfigureAppConfiguration((context, config) =>
                 {
                     foreach (var source in config.Sources
                         .OfType<Microsoft.Extensions.Configuration.Json.JsonConfigurationSource>())
@@ -48,7 +46,6 @@ namespace BookStore.API
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     webBuilder.UseStartup<Startup>();
-
                 });
     }
 }
