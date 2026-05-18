@@ -20,7 +20,7 @@ namespace BookStore.Domain.Interfaces
         IFlashSaleRepository FlashSales { get; }
         IProductImageRepository ProductImages { get; }
         INotificationRepository Notifications { get; }
-        
+        ICartHistoryRepository CartHistories { get; }
 
         Task<int> SaveChangesAsync();
         Task BeginTransactionAsync();

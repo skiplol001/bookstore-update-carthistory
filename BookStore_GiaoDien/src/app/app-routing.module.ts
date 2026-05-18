@@ -32,7 +32,7 @@ const routes: Routes = [
   { path: 'addresses', component: AddressManagerComponent },
   { path: 'checkout', component: CheckoutComponent },
   { path: 'orders', component: OrderHistoryComponent },
-  { path: 'cart-history', component: CartHistoryComponent,
+  { path: 'cart-history', component: CartHistoryComponent },
   { path: '**', component: NotFoundComponent }
 ];
 
