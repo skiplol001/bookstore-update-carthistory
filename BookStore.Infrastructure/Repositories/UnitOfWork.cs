@@ -1,3 +1,4 @@
+using BookStore.Domain.Entities;
 using BookStore.Domain.Interfaces;
 using BookStore.Infrastructure.Persistence;
 using BookStore.Infrastructure.Repositories;
@@ -22,7 +23,7 @@ public class UnitOfWork : IUnitOfWork
     public IFlashSaleRepository FlashSales { get; }
     public INotificationRepository Notifications { get; }
     public IProductImageRepository ProductImages { get; }
-    private ICartHistoryRepository _cartHistories;
+    private IReadBookRepository _readBooks;
     public UnitOfWork(BookStoreDbContext context)
     {
         _context = context;
@@ -46,8 +47,7 @@ public class UnitOfWork : IUnitOfWork
     public async Task<int> SaveChangesAsync() => await _context.SaveChangesAsync();
     
     public async Task BeginTransactionAsync() => await _context.Database.BeginTransactionAsync();
-    public ICartHistoryRepository CartHistories => _cartHistories ??= new CartHistoryRepository(_context);
-
+    public IReadBookRepository ReadBooks => _readBooks ??= new ReadBookRepository(_context);
     public async Task CommitAsync()
     {
         if (_context.Database.CurrentTransaction != null)

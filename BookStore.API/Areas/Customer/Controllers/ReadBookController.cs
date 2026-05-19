@@ -1,7 +1,7 @@
-﻿using BookStore.Application.DTO;
+﻿using BookStore.Application.DTOs;
 using BookStore.Application.Services;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
 using System.Collections.Generic;
 using System.Security.Claims;
 using System.Text.Json;
@@ -9,14 +9,14 @@ using System.Threading.Tasks;
 
 namespace BookStore.API.Controllers
 {
-    public class CartHistoryController : Controller
+    public class ReadBookController : Controller
     {
-        private readonly CartHistoryService _cartHistoryService;
-        private const string SessionKey = "CartHistorySession";
+        private readonly ReadBookService _readBookService;
+        private const string SessionKey = "ReadBookSession";
 
-        public CartHistoryController(CartHistoryService cartHistoryService)
+        public ReadBookController(ReadBookService readBookService)
         {
-            _cartHistoryService = cartHistoryService;
+            _readBookService = readBookService;
         }
 
         [HttpGet]
@@ -25,15 +25,15 @@ namespace BookStore.API.Controllers
             if (User.Identity != null && User.Identity.IsAuthenticated)
             {
                 var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                var dbHistory = await _cartHistoryService.GetCartHistoryByUserIdAsync(userId!);
+                var dbHistory = await _readBookService.GetReadBookByUserIdAsync(userId!);
                 return Json(new { success = true, data = dbHistory });
             }
             else
             {
                 var sessionData = HttpContext.Session.GetString(SessionKey);
                 var sessionList = string.IsNullOrEmpty(sessionData)
-                    ? new List<CartHistoryDTO>()
-                    : JsonSerializer.Deserialize<List<CartHistoryDTO>>(sessionData);
+                    ? new List<ReadBookDTO>()
+                    : JsonSerializer.Deserialize<List<ReadBookDTO>>(sessionData);
 
                 return Json(new { success = true, data = sessionList, isLocalSession = true });
             }
@@ -45,15 +45,15 @@ namespace BookStore.API.Controllers
             if (User.Identity != null && User.Identity.IsAuthenticated)
             {
                 var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                await _cartHistoryService.AddOrIncrementHistoryAsync(userId!, productId, quantity);
-                return Json(new { success = true, message = "Đã lưu lịch sử vào Database" });
+                await _readBookService.AddOrIncrementReadBookAsync(userId!, productId, quantity);
+                return Json(new { success = true, message = "Đã lưu vào danh sách đọc" });
             }
             else
             {
                 var sessionData = HttpContext.Session.GetString(SessionKey);
                 var sessionList = string.IsNullOrEmpty(sessionData)
-                    ? new List<CartHistoryDTO>()
-                    : JsonSerializer.Deserialize<List<CartHistoryDTO>>(sessionData) ?? new List<CartHistoryDTO>();
+                    ? new List<ReadBookDTO>()
+                    : JsonSerializer.Deserialize<List<ReadBookDTO>>(sessionData) ?? new List<ReadBookDTO>();
 
                 var existingItem = sessionList.Find(x => x.ProductId == productId);
                 if (existingItem != null)
@@ -63,7 +63,7 @@ namespace BookStore.API.Controllers
                 }
                 else
                 {
-                    var productDto = await _cartHistoryService.GetProductDetailsForSessionAsync(productId);
+                    var productDto = await _readBookService.GetProductDetailsForSessionAsync(productId);
                     if (productDto == null) return Json(new { success = false, message = "Sản phẩm không tồn tại" });
 
                     productDto.Quantity = quantity;
@@ -71,7 +71,7 @@ namespace BookStore.API.Controllers
                 }
 
                 HttpContext.Session.SetString(SessionKey, JsonSerializer.Serialize(sessionList));
-                return Json(new { success = true, message = "Đã lưu lịch sử tạm thời vào Session" });
+                return Json(new { success = true, message = "Đã lưu tạm thời vào Session" });
             }
         }
 
@@ -83,21 +83,21 @@ namespace BookStore.API.Controllers
                 var sessionData = HttpContext.Session.GetString(SessionKey);
                 if (!string.IsNullOrEmpty(sessionData))
                 {
-                    var sessionList = JsonSerializer.Deserialize<List<CartHistoryDTO>>(sessionData);
+                    var sessionList = JsonSerializer.Deserialize<List<ReadBookDTO>>(sessionData);
                     var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
                     if (sessionList != null && userId != null)
                     {
                         foreach (var item in sessionList)
                         {
-                            await _cartHistoryService.AddOrIncrementHistoryAsync(userId, item.ProductId, item.Quantity);
+                            await _readBookService.AddOrIncrementReadBookAsync(userId, item.ProductId, item.Quantity);
                         }
                         HttpContext.Session.Remove(SessionKey);
                     }
                 }
-                return Json(new { success = true, message = "Đồng bộ giỏ hàng thành công" });
+                return Json(new { success = true, message = "Đồng bộ danh sách đọc thành công" });
             }
-            return Json(new { success = false, message = "Chưa đăng nhập để đồng bộ" });
+            return Json(new { success = false, message = "Chưa đăng nhập" });
         }
     }
 }
