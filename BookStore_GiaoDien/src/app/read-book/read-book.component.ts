@@ -1,19 +1,18 @@
 import { Component, OnInit } from '@angular/core';
 import { ReadBookService } from '../../services/read-book.service';
 import { ReadBookDTO } from '../models/BookRead';
-import { ToastService } from '../../services/toast.service'; // <-- Check lại đường dẫn tới file toast.service của ông nha
+import { ToastService } from '../../services/toast.service';
 
 @Component({
   selector: 'app-read-book',
   templateUrl: './read-book.component.html',
-  styleUrls: ['./read-book.component.css']
+  //styleUrls: ['./read-book.component.css'] 
 })
 export class ReadBookComponent implements OnInit {
   readBookList: ReadBookDTO[] = [];
   isLoading: boolean = true;
   isLocalSession: boolean = false;
 
-  // Inject thêm ToastService vào constructor
   constructor(
     private readBookService: ReadBookService,
     private toast: ToastService
@@ -33,14 +32,15 @@ export class ReadBookComponent implements OnInit {
             this.isLocalSession = true;
           }
         } else {
-          // Giả sử hàm của ông tên là error(), nếu tên khác như show() hay danger() thì ông đổi lại tên hàm nha
-          this.toast.error('Không thể tải danh sách sách đã đọc.');
+          // Gọi hàm show gốc với tham số 'error'
+          this.toast.show('Không thể tải danh sách sách đã đọc.', 'error');
         }
         this.isLoading = false;
       },
       error: (err) => {
         console.error(err);
-        this.toast.error('Có lỗi kết nối đến máy chủ.');
+        // Gọi hàm show gốc với tham số 'error'
+        this.toast.show('Có lỗi kết nối đến máy chủ.', 'error');
         this.isLoading = false;
       }
     });
@@ -50,17 +50,17 @@ export class ReadBookComponent implements OnInit {
     this.readBookService.syncSessionToDb().subscribe({
       next: (response) => {
         if (response.success) {
-          // Bắn toast success xịn mịn
-          this.toast.success(response.message || 'Đồng bộ danh sách đọc thành công!');
+          // Gọi hàm show gốc với tham số 'success'
+          this.toast.show(response.message || 'Đồng bộ danh sách đọc thành công!', 'success');
           this.isLocalSession = false;
-          this.loadHistory(); // Tải lại danh sách sau khi đồng bộ
+          this.loadHistory();
         } else {
-          this.toast.error(response.message || 'Đồng bộ thất bại.');
+          this.toast.show(response.message || 'Đồng bộ thất bại.', 'error');
         }
       },
       error: (err) => {
         console.error(err);
-        this.toast.error('Lỗi đồng bộ hệ thống.');
+        this.toast.show('Lỗi đồng bộ hệ thống.', 'error');
       }
     });
   }

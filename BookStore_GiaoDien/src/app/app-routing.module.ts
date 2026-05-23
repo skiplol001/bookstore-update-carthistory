@@ -15,7 +15,7 @@ import { CheckoutComponent } from './checkout/checkout.component';
 import { OrderHistoryComponent } from './order-history/order-history.component';
 import { ForgotPasswordComponent } from './forgot-password/forgot-password.component';
 import { ResetPasswordComponent } from './reset-password/reset-password.component';
-import { CartHistoryComponent } from './cart-history/cart-history.component';
+import { ReadBookComponent } from './read-book/read-book.component';
 const routes: Routes = [
   { path: '', component: HomeComponent },
   { path: 'category/:id', component: ProductListingComponent },
@@ -32,7 +32,7 @@ const routes: Routes = [
   { path: 'addresses', component: AddressManagerComponent },
   { path: 'checkout', component: CheckoutComponent },
   { path: 'orders', component: OrderHistoryComponent },
-  { path: 'cart-history', component: CartHistoryComponent },
+  { path: 'read-book', component: ReadBookComponent },
   { path: '**', component: NotFoundComponent }
 ];
 

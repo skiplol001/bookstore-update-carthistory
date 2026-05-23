@@ -11,6 +11,12 @@ export interface ToastMessage {
   providedIn: 'root'
 })
 export class ToastService {
+  error(arg0: string) {
+      throw new Error('Method not implemented.');
+  }
+  success(arg0: string) {
+      throw new Error('Method not implemented.');
+  }
   private toastSubject = new BehaviorSubject<ToastMessage>({
     message: '',
     type: 'info',
@@ -31,4 +37,5 @@ export class ToastService {
   hide() {
     this.toastSubject.next({ ...this.toastSubject.value, show: false });
   }
+
 }

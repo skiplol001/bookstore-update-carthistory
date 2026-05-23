@@ -20,6 +20,8 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { HTTP_INTERCEPTORS, HttpClientModule } from '@angular/common/http';
 import { AuthInterceptor } from './interceptors/auth.interceptor';
 import { RouterModule } from '@angular/router';
+import { ReadBookComponent } from './read-book/read-book.component';
+import { CommonModule } from '@angular/common';
 
 @NgModule({
   declarations: [
@@ -37,11 +39,14 @@ import { RouterModule } from '@angular/router';
     AddressFormComponent,
     CheckoutComponent,
     OrderHistoryComponent,
+    ReadBookComponent,
     OrderStatusPipe
   ],
   imports: [
     BrowserModule,
     HttpClientModule,
+    CommonModule,
+    RouterModule,
     AppRoutingModule,
     RouterModule,
     FormsModule,
