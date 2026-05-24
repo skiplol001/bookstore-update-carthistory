@@ -25,21 +25,19 @@ export class ReadBookComponent implements OnInit {
   loadHistory(): void {
     this.isLoading = true;
     this.readBookService.getHistory().subscribe({
-      next: (response) => {
+      next: (response: any) => {
         if (response.success) {
           this.readBookList = response.data;
           if (response.isLocalSession) {
             this.isLocalSession = true;
           }
         } else {
-          // Gọi hàm show gốc với tham số 'error'
           this.toast.show('Không thể tải danh sách sách đã đọc.', 'error');
         }
         this.isLoading = false;
       },
-      error: (err) => {
+      error: (err: any) => {
         console.error(err);
-        // Gọi hàm show gốc với tham số 'error'
         this.toast.show('Có lỗi kết nối đến máy chủ.', 'error');
         this.isLoading = false;
       }
@@ -48,9 +46,8 @@ export class ReadBookComponent implements OnInit {
 
   syncCart(): void {
     this.readBookService.syncSessionToDb().subscribe({
-      next: (response) => {
+      next: (response: any) => {
         if (response.success) {
-          // Gọi hàm show gốc với tham số 'success'
           this.toast.show(response.message || 'Đồng bộ danh sách đọc thành công!', 'success');
           this.isLocalSession = false;
           this.loadHistory();
@@ -58,7 +55,7 @@ export class ReadBookComponent implements OnInit {
           this.toast.show(response.message || 'Đồng bộ thất bại.', 'error');
         }
       },
-      error: (err) => {
+      error: (err: any) => {
         console.error(err);
         this.toast.show('Lỗi đồng bộ hệ thống.', 'error');
       }

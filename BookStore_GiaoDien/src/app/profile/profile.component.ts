@@ -10,6 +10,7 @@ import { FavoriteDto } from '../models/favorite.model';
 import { OrderService } from '../../services/order.service';
 import { Order, OrderFullDetail } from '../models/order.model';
 import { filter, finalize, take } from 'rxjs/operators';
+import { ReadBookService } from '../../services/read-book.service';
 
 @Component({
   selector: 'app-profile',
@@ -22,15 +23,17 @@ export class ProfileComponent implements OnInit {
   private favoriteService = inject(FavoriteService);
   private addressService = inject(UserAddressService);
   private orderService = inject(OrderService);
+  private readBookService = inject(ReadBookService); // Đã dọn vị trí inject lên trên cho gọn đẹp
 
   userInfo: AuthResponseDto | null = null;
-  activeTab: 'overview' | 'settings' | 'orders' | 'favorites' = 'overview';
-  
+  activeTab: 'overview' | 'settings' | 'orders' | 'favorites' | 'read-book' = 'overview';
   favorites: FavoriteDto[] = [];
   orders: Order[] = [];
+  readBookList: any[] = [];
+
   isLoadingStats = false;
   isLoadingFavorites = false;
-  
+
   // New Address Logic
   addresses: Address[] = [];
   isLoadingAddresses = false;
@@ -74,6 +77,21 @@ export class ProfileComponent implements OnInit {
 
       this.loadStats();
       this.loadAddresses();
+      this.loadReadBookHistory(); // <-- 1. CHÈN VÀO ĐÂY: Kích hoạt tải lịch sử xem khi vào trang Profile
+    });
+  }
+
+  // 2. HÀM TẢI DỮ LIỆU LỊCH SỬ XEM SÁCH TỪ BACKEND
+  loadReadBookHistory(): void {
+    this.readBookService.getHistory().subscribe({
+      next: (res: any) => {
+        if (res && res.success) {
+          this.readBookList = res.data || [];
+        }
+      },
+      error: (err: any) => {
+        console.error('[Lumen Bookstore] Lỗi nạp lịch sử xem sách tại Profile:', err);
+      }
     });
   }
 
@@ -184,13 +202,17 @@ export class ProfileComponent implements OnInit {
     });
   }
 
-  switchTab(tab: 'overview' | 'settings' | 'orders' | 'favorites') {
+  switchTab(tab: 'overview' | 'settings' | 'orders' | 'favorites' | 'read-book') {
     this.activeTab = tab;
     if (tab === 'favorites' && this.favorites.length === 0) {
       this.loadFavorites();
     }
     if (tab === 'settings') {
       this.loadAddresses();
+    }
+    // 3. BỔ SUNG: Nếu click lại vào tab read-book thì làm mới danh sách luôn cho real-time
+    if (tab === 'read-book') {
+      this.loadReadBookHistory();
     }
   }
 
@@ -202,7 +224,7 @@ export class ProfileComponent implements OnInit {
         this.toastService.show('Chỉ hỗ trợ tải lên file hình ảnh (JPG, PNG...)', 'warning');
         return;
       }
-      const maxSize = 5 * 1024 * 1024; 
+      const maxSize = 5 * 1024 * 1024;
       if (file.size > maxSize) {
         this.toastService.show('Kích thước ảnh quá lớn! Vui lòng chọn ảnh dưới 5MB.', 'warning');
         return;
@@ -215,7 +237,7 @@ export class ProfileComponent implements OnInit {
   }
 
   saveProfile() {
-    this.errors = {}; 
+    this.errors = {};
     if (!this.userInfo?.fullName || this.userInfo.fullName.trim().length === 0) {
       this.errors['fullName'] = true;
       this.toastService.show('Họ và tên không được để trống!', 'warning');
@@ -229,23 +251,19 @@ export class ProfileComponent implements OnInit {
       return;
     }
 
-    // Chuẩn bị FormData để gửi lên Server (multipart/form-data)
     const formData = new FormData();
     formData.append('FullName', this.userInfo?.fullName || '');
     formData.append('PhoneNumber', this.userInfo?.phoneNumber || '');
-    // Bổ sung isActive
     formData.append('IsActive', String(this.userInfo?.isActive ?? true));
 
     if (this.avatarFile) {
       formData.append('AvatarFile', this.avatarFile);
     }
 
-    // Hiển thị trạng thái đang xử lý (có thể thêm biến isLoading nếu cần)
     this.authService.updateProfile(formData).subscribe({
       next: (res) => {
         if (res.isSuccess) {
           this.toastService.show('Cập nhật hồ sơ thành công!', 'success');
-          // Reset avatar file sau khi upload thành công
           this.avatarFile = null;
         } else {
           this.toastService.show(res.message || 'Cập nhật thất bại', 'error');
@@ -258,7 +276,7 @@ export class ProfileComponent implements OnInit {
   isLoading = false;
 
   changePassword() {
-    this.errors = {}; 
+    this.errors = {};
     if (!this.currentPassword) {
       this.errors['currentPassword'] = true;
       this.toastService.show('Vui lòng nhập mật khẩu hiện tại!', 'warning');
@@ -283,22 +301,21 @@ export class ProfileComponent implements OnInit {
       currentPassword: this.currentPassword,
       newPassword: this.newPassword
     }).pipe(finalize(() => this.isLoading = false))
-    .subscribe({
-      next: (res) => {
-        if (res.isSuccess) {
-          this.toastService.show('Đổi mật khẩu thành công!', 'success');
-          // Reset form
-          this.currentPassword = '';
-          this.newPassword = '';
-          this.confirmPassword = '';
-        } else {
-          this.toastService.show(res.message || 'Đổi mật khẩu thất bại', 'error');
+      .subscribe({
+        next: (res) => {
+          if (res.isSuccess) {
+            this.toastService.show('Đổi mật khẩu thành công!', 'success');
+            this.currentPassword = '';
+            this.newPassword = '';
+            this.confirmPassword = '';
+          } else {
+            this.toastService.show(res.message || 'Đổi mật khẩu thất bại', 'error');
+          }
+        },
+        error: (err) => {
+          this.toastService.show(err.error?.message || 'Lỗi hệ thống khi đổi mật khẩu', 'error');
         }
-      },
-      error: (err) => {
-        this.toastService.show(err.error?.message || 'Lỗi hệ thống khi đổi mật khẩu', 'error');
-      }
-    });
+      });
   }
 
   private ensureArray(data: any): any[] {

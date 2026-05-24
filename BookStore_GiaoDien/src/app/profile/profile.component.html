@@ -74,6 +74,19 @@
               Đơn hàng của tôi
             </button>
 
+		<button (click)="switchTab('read-book')" 
+  [class.bg-blue-50]="activeTab === 'read-book'"
+  [class.text-blue-600]="activeTab === 'read-book'" 
+  [class.font-black]="activeTab === 'read-book'"
+  [class.text-slate-500]="activeTab !== 'read-book'" 
+  [class.hover:bg-blue-50]="activeTab !== 'read-book'"
+  class="w-full text-left px-6 py-4 rounded-[2rem] font-bold transition-premium flex items-center gap-4 group">
+  <span class="material-symbols-outlined group-hover:animate-pulse-hot notranslate" [class.text-blue-600]="activeTab === 'read-book'" translate="no">
+    visibility
+  </span>
+  Sách đã xem
+</button>
+
             <button (click)="switchTab('favorites')" [class.bg-rose-50]="activeTab === 'favorites'"
               [class.text-rose-500]="activeTab === 'favorites'" [class.font-black]="activeTab === 'favorites'"
               [class.text-rose-400]="activeTab !== 'favorites'" [class.hover:bg-rose-50]="activeTab !== 'favorites'"
@@ -82,7 +95,8 @@
                 [class.text-red-600]="activeTab === 'favorites'" translate="no">favorite</span>
               Sản phẩm yêu thích
             </button>
-
+            
+            
             <button (click)="switchTab('settings')" [class.bg-blue-50]="activeTab === 'settings'"
               [class.text-blue-600]="activeTab === 'settings'" [class.font-black]="activeTab === 'settings'"
               [class.text-slate-500]="activeTab !== 'settings'" [class.hover:bg-slate-50]="activeTab !== 'settings'"
@@ -119,6 +133,16 @@
                 <h4 class="text-2xl font-black text-slate-800">Lịch sử mua sắm</h4>
               </div>
             </div>
+
+<div (click)="switchTab('read-book')" class="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100 flex items-center gap-6 cursor-pointer hover:shadow-md transition-all">
+  <div class="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center font-black">
+    {{readBookList.length || 0}}
+  </div>
+  <div>
+    <p class="text-slate-400 font-bold uppercase tracking-widest text-[10px] mb-1">Sách đã xem</p>
+    <h4 class="text-xl font-black text-slate-800">Lịch sử xem</h4>
+  </div>
+</div>
 
             <div class="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100 flex items-center gap-6">
               <div class="w-16 h-16 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center font-black">
@@ -170,6 +194,47 @@
           </div>
         </div>
 
+	<!-- readbook tab-->
+	<div *ngIf="activeTab === 'read-book'" class="animate-fadeIn w-full">
+          <div class="bg-white p-8 md:p-10 rounded-[3rem] shadow-sm border border-slate-100 min-h-[500px] w-full">
+            <h3 class="text-2xl font-black mb-8 text-slate-800 flex items-center gap-3">
+              Sách đã xem gần đây <span class="material-symbols-outlined notranslate text-blue-500" translate="no">visibility</span>
+            </h3>
+
+            <div *ngIf="!readBookList || readBookList.length === 0" class="py-20 text-center">
+              <div class="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                <span class="material-symbols-outlined text-blue-200 text-5xl notranslate" translate="no">menu_book</span>
+              </div>
+              <h4 class="text-xl font-black text-slate-800 mb-2">Chưa có lịch sử xem sách</h4>
+              <p class="text-slate-400 font-bold mb-8">Hãy lướt xem các đầu sách hấp dẫn tại trang chủ để ghi nhận hoạt động!</p>
+              <a routerLink="/" class="px-8 py-3.5 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:bg-blue-600 transition-all">
+                Khám phá ngay
+              </a>
+            </div>
+
+            <div *ngIf="readBookList && readBookList.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+              <div *ngFor="let item of readBookList" class="group bg-white p-4 rounded-[2.5rem] shadow-sm hover:shadow-xl transition-all border border-slate-100 flex gap-5 items-center relative pr-4">
+                
+                <div [routerLink]="['/product', item.productId]" class="w-24 h-24 flex-shrink-0 rounded-[1.5rem] overflow-hidden bg-slate-50 cursor-pointer shadow-inner">
+                  <img [src]="item.imageUrl?.startsWith('http') ? item.imageUrl : 'https://bookstore-asp-nc.onrender.com/uploads/' + item.imageUrl" class="w-full h-full object-cover transition-premium group-hover:scale-110" />
+                </div>
+
+                <div class="flex-1 min-w-0">
+                  <h3 [routerLink]="['/product', item.productId]" class="font-black text-sm mb-1 leading-tight line-clamp-2 hover:text-blue-600 transition-colors cursor-pointer text-slate-800">
+                    {{item.name || item.productName}}
+                  </h3>
+                  <span class="text-sm font-black text-blue-600 block mt-2">
+                    {{item.price | currency:'VND':'symbol':'1.0-0'}}
+                  </span>
+                </div>
+
+                <button [routerLink]="['/product', item.productId]" class="absolute right-4 w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 hover:bg-blue-600 hover:text-white transition-all active:scale-90">
+                  <span class="material-symbols-outlined text-lg notranslate" translate="no">arrow_forward</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
         <!-- Orders Tab -->
         <div *ngIf="activeTab === 'orders'" class="animate-fadeIn">
           <div class="bg-white p-8 md:p-10 rounded-[3rem] shadow-sm border border-slate-100 min-h-[500px]">
@@ -423,7 +488,6 @@
       opacity: 0;
       transform: translateY(15px);
     }
-
     to {
       opacity: 1;
       transform: translateY(0);

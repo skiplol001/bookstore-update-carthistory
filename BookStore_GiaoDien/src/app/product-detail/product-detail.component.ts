@@ -6,6 +6,7 @@ import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
 import { CartService } from '../../services/cart.service';
 import { ReviewService, Review } from '../../services/review.service';
+import { ReadBookService } from '../../services/read-book.service'; // <-- 1. IMPORT SERVICE CỦA MÌNH VÀO
 import { Router } from '@angular/router';
 import { Product } from '../models/product.model'; // Book -> Product
 import { finalize, forkJoin, of, Subject, takeUntil } from 'rxjs';
@@ -24,6 +25,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
   private toastService = inject(ToastService);
   private cartService = inject(CartService);
   private reviewService = inject(ReviewService);
+  private readBookService = inject(ReadBookService); // <-- 2. INJECT SỬ DỤNG THEO PHONG CÁCH ĐỜI MỚI NGON LÀNH
   private router = inject(Router);
 
   reviews: Review[] = [];
@@ -33,10 +35,113 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
   canReview: boolean = false;
   selectedImage: string = '';
 
+  product: Product | null = null;
+  isToggling = false;
+  togglingId: number | null = null;
+  private destroy$ = new Subject<void>();
+  relatedProducts: Product[] = []; // relatedBooks -> relatedProducts
+  quantity: number = 1;
+  isLoading: boolean = false;
+  activeTab: 'description' | 'details' | 'reviews' = 'description';
+  myFavIds: number[] = [];
+
+  ngOnInit() {
+    this.route.params.subscribe(params => {
+      const id = +params['id'];
+      if (id) {
+        this.loadProductDetail(id);
+      }
+    });
+    this.initFavoriteSubscription();
+  }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  loadProductDetail(id: number) {
+    this.isLoading = true;
+
+    const userFavorites$ = this.authService.isLoggedIn()
+      ? this.favoriteService.getFavorites().pipe(catchError(() => of([])))
+      : of([]);
+
+    forkJoin({
+      productData: this.productService.getProductById(id),
+      userFavorites: userFavorites$
+    }).pipe(
+      finalize(() => this.isLoading = false)
+    ).subscribe({
+      next: (res: any) => {
+        let rawData = res.productData;
+        if (rawData && rawData.$values && Array.isArray(rawData.$values)) {
+          rawData = rawData.$values[0];
+        } else if (rawData && rawData.data) {
+          rawData = rawData.data;
+        }
+
+        if (rawData) {
+          this.product = this.mapProduct(rawData);
+          this.selectedImage = this.product.imageUrl;
+
+          // 3. KHI SÁCH ĐƯỢC LOAD LÊN THÀNH CÔNG -> ÂM THẦM GỌI API LƯU LỊCH SỬ XEM LIỀN
+          this.saveToReadHistory(this.product.id);
+
+          this.loadReviews(this.product.id);
+          let favData = res.userFavorites;
+          if (favData && favData.$values && Array.isArray(favData.$values)) {
+            favData = favData.$values;
+          } else if (!Array.isArray(favData)) {
+            favData = [];
+          }
+
+          const favIds = favData.map((f: any) => f.productId || f.ProductId);
+          this.myFavIds = favIds;
+
+          if (favIds.includes(this.product.id)) {
+            this.product.isFavorited = true;
+          }
+
+          // related products logic
+          this.productService.getRelatedProducts(this.product.id).subscribe({
+            next: (related: any) => {
+              const rawRelated = this.ensureArray(related);
+              this.relatedProducts = rawRelated.map((p: any) => {
+                let mapped = this.mapProduct(p);
+                if (this.myFavIds.includes(mapped.id)) {
+                  mapped.isFavorited = true;
+                }
+                return mapped;
+              }).filter((p: Product) => p.isActive);
+            }
+          });
+        }
+      },
+      error: (err) => {
+        console.error('Error loading product detail:', err);
+      }
+    });
+  }
+
+  // 4. HÀM GỬI LỊCH SỬ XEM XUỐNG DATABASE QUA READBOOKSERVICE
+  saveToReadHistory(productId: number): void {
+    this.readBookService.addHistory(productId).subscribe({
+      next: (response: any) => {
+        if (response.success) {
+          console.log(`[Lumen Bookstore] Đã âm thầm ghi nhận sách ID ${productId} vào danh sách đã xem.`);
+        }
+      },
+      error: (err: any) => {
+        console.error('[Lumen Bookstore] Lỗi tự động lưu lịch sử xem sách:', err);
+      }
+    });
+  }
+
   addToCart(productParam?: Product, quantityParam?: number) {
     const targetProduct = productParam || this.product;
     if (!targetProduct) return;
-    
+
     const qty = quantityParam || (productParam ? 1 : this.quantity);
 
     this.cartService.addToCart(targetProduct.id, qty).subscribe({
@@ -49,6 +154,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
       }
     });
   }
+
   buyNow() {
     if (!this.authService.isLoggedIn()) {
       this.toastService.show('Vui lòng đăng nhập để tiến hành đặt hàng!', 'warning');
@@ -57,7 +163,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     }
 
     if (!this.product) return;
-    
+
     this.cartService.addToCart(this.product.id, this.quantity).subscribe({
       next: () => {
         this.router.navigate(['/checkout']);
@@ -68,15 +174,11 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
       }
     });
   }
-  product: Product | null = null; 
-  isToggling = false;
-  togglingId: number | null = null;
-  private destroy$ = new Subject<void>();
 
   toggleFavorite(targetProduct?: Product) {
     const p = targetProduct || this.product;
     if (!p) return;
-    
+
     if (!this.authService.isLoggedIn()) {
       this.toastService.show('Vui lòng đăng nhập để lưu vào danh sách yêu thích!', 'warning');
       this.router.navigate(['/login']);
@@ -106,26 +208,6 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
       }
     });
   }
-  relatedProducts: Product[] = []; // relatedBooks -> relatedProducts
-  quantity: number = 1;
-  isLoading: boolean = false;
-  activeTab: 'description' | 'details' | 'reviews' = 'description';
-  myFavIds: number[] = [];
-
-  ngOnInit() {
-    this.route.params.subscribe(params => {
-      const id = +params['id'];
-      if (id) {
-        this.loadProductDetail(id);
-      }
-    });
-    this.initFavoriteSubscription();
-  }
-
-  ngOnDestroy() {
-    this.destroy$.next();
-    this.destroy$.complete();
-  }
 
   initFavoriteSubscription() {
     this.favoriteService.favoriteIds$
@@ -138,66 +220,6 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
           p.isFavorited = ids.includes(p.id);
         });
       });
-  }
-
-  loadProductDetail(id: number) {
-    this.isLoading = true;
-    
-    const userFavorites$ = this.authService.isLoggedIn() 
-      ? this.favoriteService.getFavorites().pipe(catchError(() => of([])))
-      : of([]);
-
-    forkJoin({
-      productData: this.productService.getProductById(id),
-      userFavorites: userFavorites$
-    }).pipe(
-      finalize(() => this.isLoading = false)
-    ).subscribe({
-      next: (res: any) => {
-        let rawData = res.productData;
-        if (rawData && rawData.$values && Array.isArray(rawData.$values)) {
-          rawData = rawData.$values[0];
-        } else if (rawData && rawData.data) {
-          rawData = rawData.data;
-        }
-
-        if (rawData) {
-          this.product = this.mapProduct(rawData);
-          this.selectedImage = this.product.imageUrl;
-          this.loadReviews(this.product.id);
-          let favData = res.userFavorites;
-          if (favData && favData.$values && Array.isArray(favData.$values)) {
-            favData = favData.$values;
-          } else if (!Array.isArray(favData)) {
-            favData = [];
-          }
-          
-          const favIds = favData.map((f: any) => f.productId || f.ProductId);
-          this.myFavIds = favIds;
-          
-          if (favIds.includes(this.product.id)) {
-            this.product.isFavorited = true;
-          }
-          
-          // related products logic
-          this.productService.getRelatedProducts(this.product.id).subscribe({
-            next: (related: any) => {
-              const rawRelated = this.ensureArray(related);
-              this.relatedProducts = rawRelated.map((p: any) => {
-                let mapped = this.mapProduct(p);
-                if (this.myFavIds.includes(mapped.id)) {
-                  mapped.isFavorited = true;
-                }
-                return mapped;
-              }).filter((p: Product) => p.isActive);
-            }
-          });
-        }
-      },
-      error: (err) => {
-        console.error('Error loading product detail:', err);
-      }
-    });
   }
 
   private mapProduct(rawData: any): Product {

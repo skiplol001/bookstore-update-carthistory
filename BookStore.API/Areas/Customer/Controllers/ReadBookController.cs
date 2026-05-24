@@ -9,6 +9,8 @@ using System.Threading.Tasks;
 
 namespace BookStore.API.Controllers
 {
+    [ApiController] // Kích hoạt các tính năng bổ trợ API đời mới
+    [Route("api/[controller]/[action]")] // Định tuyến đồng bộ cấu trúc: api/ReadBook/Tên_Hàm
     public class ReadBookController : Controller
     {
         private readonly ReadBookService _readBookService;
@@ -40,7 +42,8 @@ namespace BookStore.API.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddToHistory(int productId, int quantity)
+        // Thêm [FromForm] để ép C# đọc đúng các tham số URL-encoded từ body request gửi tới
+        public async Task<IActionResult> AddToHistory([FromForm] int productId, [FromForm] int quantity)
         {
             if (User.Identity != null && User.Identity.IsAuthenticated)
             {
